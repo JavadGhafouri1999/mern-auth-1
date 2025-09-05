@@ -1,8 +1,10 @@
-import { ThemeProvider, createTheme } from "@mui/material/styles";
 import AppRoutes from "./routes";
 import { BrowserRouter } from "react-router";
+import { createTheme, ThemeProvider, THEME_ID as MATERIAL_THEME_ID } from "@mui/material/styles";
+import { CssVarsProvider as JoyCssVarsProvider } from "@mui/joy/styles";
+import CssBaseline from "@mui/material/CssBaseline";
 
-const theme = createTheme({
+const materialTheme = createTheme({
 	colorSchemes: {
 		dark: true,
 	},
@@ -10,10 +12,13 @@ const theme = createTheme({
 
 export default function App() {
 	return (
-		<ThemeProvider theme={theme}>
-			<BrowserRouter>
-				<AppRoutes />
-			</BrowserRouter>
+		<ThemeProvider theme={{ [MATERIAL_THEME_ID]: materialTheme }}>
+			<JoyCssVarsProvider>
+				<CssBaseline enableColorScheme />
+				<BrowserRouter>
+					<AppRoutes />
+				</BrowserRouter>
+			</JoyCssVarsProvider>
 		</ThemeProvider>
 	);
 }
