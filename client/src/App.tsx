@@ -1,24 +1,50 @@
-import AppRoutes from "./routes";
+import { useEffect } from "react";
 import { BrowserRouter } from "react-router";
-import { createTheme, ThemeProvider, THEME_ID as MATERIAL_THEME_ID } from "@mui/material/styles";
-import { CssVarsProvider as JoyCssVarsProvider } from "@mui/joy/styles";
-import CssBaseline from "@mui/material/CssBaseline";
+import AppRoutes from "./routes";
+import { ThemeProvider, createTheme, useColorScheme as useMaterialColorScheme } from "@mui/material/styles";
+import { extendTheme as extendJoyTheme, useColorScheme, CssVarsProvider, THEME_ID } from "@mui/joy/styles";
 
-const materialTheme = createTheme({
+const theme = createTheme({ colorSchemes: { light: true, dark: true } });
+const joyTheme = extendJoyTheme({
 	colorSchemes: {
-		dark: true,
+		light: {
+			palette: {
+				background: {
+					body: "#FAF7F0", // page
+					surface: "#E4E0E1", // card
+				},
+			},
+		},
+		dark: {
+			palette: {
+				background: {
+					body: "#1A1A1D",
+					surface: "#222831",
+				},
+			},
+		},
 	},
 });
+function SyncThemeMode() {
+	const { setMode } = useColorScheme();
+	const { mode } = useMaterialColorScheme();
+	useEffect(() => {
+		if (mode) {
+			setMode(mode);
+		}
+	}, [mode, setMode]);
+	return null;
+}
 
 export default function App() {
 	return (
-		<ThemeProvider theme={{ [MATERIAL_THEME_ID]: materialTheme }}>
-			<JoyCssVarsProvider>
-				<CssBaseline enableColorScheme />
+		<ThemeProvider theme={theme}>
+			<CssVarsProvider theme={{ [THEME_ID]: joyTheme }}>
+				<SyncThemeMode />
 				<BrowserRouter>
 					<AppRoutes />
 				</BrowserRouter>
-			</JoyCssVarsProvider>
+			</CssVarsProvider>
 		</ThemeProvider>
 	);
 }

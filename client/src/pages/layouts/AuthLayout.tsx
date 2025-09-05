@@ -1,9 +1,19 @@
+import { Box } from "@mui/joy";
 import { Outlet } from "react-router";
 
 export default function AuthLayout() {
 	return (
-		<div className="flex items-center justify-center h-screen w-full bg-gradient-to-bl from-gray-900 to-gray-950">
+		<Box
+			sx={{
+				display: "flex",
+				alignItems: "center",
+				justifyContent: "center",
+				height: "100vh",
+				width: "100%",
+				backgroundColor: "background.body",
+				color: "text.primary",
+			}}>
 			<Outlet />
-		</div>
+		</Box>
 	);
 }
