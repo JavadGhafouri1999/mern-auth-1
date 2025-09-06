@@ -27,7 +27,13 @@ export default function ThemeToggle() {
 			variant="plain"
 			onClick={handleToggle}>
 			<Zoom in={show} timeout={150} key={mode}>
-				<span>{mode === "dark" ? <DarkModeIcon /> : <LightModeIcon />}</span>
+				<span>
+					{mode === "dark" ? (
+						<DarkModeIcon  />
+					) : (
+						<LightModeIcon sx={{ color: "orange" }} />
+					)}
+				</span>
 			</Zoom>
 		</Button>
 	);

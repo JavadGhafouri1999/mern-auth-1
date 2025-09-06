@@ -1,7 +1,7 @@
 import { Box } from "@mui/joy";
-import SatelliteAltIcon from "@mui/icons-material/SatelliteAlt";
+import { Outlet } from "react-router";
 
-export default function LoadingPage() {
+export default function DashboardLayout() {
 	return (
 		<Box
 			sx={{
@@ -13,9 +13,7 @@ export default function LoadingPage() {
 				backgroundColor: "background.body",
 				color: "text.primary",
 			}}>
-			<div className="animate-bounce">
-				<SatelliteAltIcon sx={{ fontSize: "100px" }} />
-			</div>
+			<Outlet />
 		</Box>
 	);
 }

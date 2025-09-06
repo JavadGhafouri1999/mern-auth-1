@@ -72,7 +72,7 @@ export default function SignupPage() {
 								className="ltr"
 							/>
 						</FormControl>
-						<div className="w-full flex items-center gap-2 justify-between">
+						<div className="max-w-full flex items-center gap-1 justify-between">
 							<FormControl sx={{ width: "100%" }}>
 								<FormLabel sx={{ color: "text.primary" }}>جنسیت</FormLabel>
 								<Select defaultValue="male" variant="soft">
@@ -80,7 +80,7 @@ export default function SignupPage() {
 									<Option value="female">زن</Option>
 								</Select>
 							</FormControl>
-							<div className="flex flex-col w-full">
+							<div className="flex flex-col max-w-fit">
 								<FormLabel sx={{ color: "text.primary", fontSize: "sm" }}>
 									تاریخ تولد
 								</FormLabel>

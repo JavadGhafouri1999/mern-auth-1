@@ -3,6 +3,7 @@ import { BrowserRouter } from "react-router";
 import AppRoutes from "./routes";
 import { ThemeProvider, createTheme, useColorScheme as useMaterialColorScheme } from "@mui/material/styles";
 import { extendTheme as extendJoyTheme, useColorScheme, CssVarsProvider, THEME_ID } from "@mui/joy/styles";
+import InitColorSchemeScript from "@mui/joy/InitColorSchemeScript";
 
 const theme = createTheme({ colorSchemes: { light: true, dark: true } });
 const joyTheme = extendJoyTheme({
@@ -41,6 +42,7 @@ export default function App() {
 		<ThemeProvider theme={theme}>
 			<CssVarsProvider theme={{ [THEME_ID]: joyTheme }}>
 				<SyncThemeMode />
+				<InitColorSchemeScript />
 				<BrowserRouter>
 					<AppRoutes />
 				</BrowserRouter>
