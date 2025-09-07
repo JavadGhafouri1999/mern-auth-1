@@ -20,21 +20,21 @@ export default function SignupPage() {
 				maxWidth: { xs: "90%", sm: "sm", md: "md" },
 				padding: { xs: 1, md: 2 },
 				backgroundColor: "background.surface",
-				marginX: 4,
-				gap: 4,
+				marginX: 3,
+				gap: 2,
 			}}>
 			{/* Right - Form */}
 			<Box
 				sx={{
-					height: "100%",
-					minHeight: "100%",
+					height: "screen",
+					minHeight: "screen",
 					width: { xs: "100%", md: 1 / 2 },
 					display: "flex",
 					flexDirection: "column",
 					borderRadius: 4,
 					padding: 1,
 					overflow: "hidden",
-					gap: 4,
+					gap: 3,
 				}}>
 				<div className="w-full flex items-center justify-between gap-4">
 					<svg
@@ -52,8 +52,8 @@ export default function SignupPage() {
 				</div>
 				<h1 className="w-full text-xl md:text-2xl font-bold text-center mt-2">ساخت حساب</h1>
 
-				<form className="h-full flex flex-col gap-6 w-full px-8 mx-auto mb-6 md:mb-0">
-					<Stack direction="column" spacing={3} sx={{ width: "100%", maxWidth: "sm" }}>
+				<form className="h-full flex flex-col gap-5 w-full px-8 mx-auto mb-6 md:mb-0">
+					<Stack direction="column" spacing={2} sx={{ width: "100%", maxWidth: "sm" }}>
 						<FormControl sx={{ maxWidth: "sm", fontSize: 24 }}>
 							<FormLabel sx={{ color: "text.primary" }}>نام کاربری</FormLabel>
 							<Input
@@ -87,6 +87,29 @@ export default function SignupPage() {
 								<JoyV6Field />
 							</div>
 						</div>
+						<FormControl sx={{ color: "text.primary" }}>
+							<FormLabel sx={{ color: "text.primary" }}>رمز عبور</FormLabel>
+							<Input
+								placeholder="*********"
+								type={showPass ? "text" : "password"}
+								variant="soft"
+								sx={{ maxWidth: "sm", fontSize: 18 }}
+								className="ltr"
+							/>
+							{showPass ? (
+								<VisibilityOffIcon
+									sx={{ fontSize: 15 }}
+									className="cursor-pointer absolute right-1 top-[57%] text-gray-500"
+									onClick={() => setShowPass(!showPass)}
+								/>
+							) : (
+								<VisibilityIcon
+									sx={{ fontSize: 15 }}
+									className="cursor-pointer absolute right-1 top-[57%] text-gray-500"
+									onClick={() => setShowPass(!showPass)}
+								/>
+							)}
+						</FormControl>
 						<FormControl sx={{ color: "text.primary" }}>
 							<FormLabel sx={{ color: "text.primary" }}>تکرار رمز</FormLabel>
 							<Input
@@ -128,7 +151,7 @@ export default function SignupPage() {
 			<Box
 				sx={{
 					display: { xs: "none", md: "block" },
-					height: "100%",
+					height: "screen",
 					width: 1 / 2,
 					overflow: "hidden",
 					borderRadius: 4,
