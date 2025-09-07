@@ -1,8 +1,10 @@
 import catchErrors from "../utils/catchErrors";
 import { createAccount, loginService } from "../services/auth.service";
 import { CREATED, OK } from "../constants/httpStatus";
-import { setAuthCookies } from "../utils/cookies";
+import { clearAuthCookies, setAuthCookies } from "../utils/cookies";
 import { loginSchema, registerSchema } from "./auth.schemas";
+import { validateToken } from "../utils/jwtToken";
+import SessionModel from "../models/session.model";
 
 /*
     Each (Most) controllers need 3 steps
@@ -32,4 +34,13 @@ export const loginHandler = catchErrors(async (req, res) => {
 	return setAuthCookies({ res, refreshToken, accessToken })
 		.status(OK)
 		.json({ message: "Logged In!", user });
+});
+
+export const logoutHandler = catchErrors(async (req, res) => {
+	const accessToken = req.cookies.accessToken;
+	const { payload } = validateToken(accessToken);
+	if (payload) {
+		await SessionModel.findByIdAndDelete(payload.sessionId);
+	}
+	return clearAuthCookies(res).status(OK).json({ message: "Log out successful" });
 });

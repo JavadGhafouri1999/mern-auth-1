@@ -4,12 +4,19 @@ import FormControl from "@mui/joy/FormControl";
 import FormLabel from "@mui/joy/FormLabel";
 import { createSvgIcon } from "@mui/joy/utils";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { AdapterDayjsJalali } from "../utils/AdapterDayjsJalali";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import type { DatePickerFieldProps, DatePickerProps } from "@mui/x-date-pickers/DatePicker";
 import { unstable_useDateField as useDateField } from "@mui/x-date-pickers/DateField";
 import { usePickerContext } from "@mui/x-date-pickers/hooks";
+import dayjs from "dayjs";
+import jalaliPlugin from "@zoomit/dayjs-jalali-plugin";
 import "dayjs/locale/fa";
+
+dayjs.extend(jalaliPlugin);
+dayjs.locale("fa");
+// Set default calendar to Jalali
+dayjs.calendar("jalali");
 
 const CalendarIcon = createSvgIcon(
 	<path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z" />,
@@ -54,22 +61,12 @@ function JoyDateField(props: DatePickerFieldProps) {
 				variant="soft"
 				disabled={disabled}
 				endDecorator={
-					<>
-						{clearable && value && (
-							<IconButton
-								title="Clear"
-								tabIndex={-1}
-								onClick={onClear}
-								sx={{ marginRight: 0.5 }}>
-								<ClearIcon size="md" />
-							</IconButton>
-						)}
-						<IconButton
-							onClick={() => pickerContext.setOpen((prev) => !prev)}
-							aria-label={openPickerAriaLabel}>
-							<CalendarIcon size="md" />
-						</IconButton>
-					</>
+					<IconButton
+						onClick={() => pickerContext.setOpen((prev) => !prev)}
+						aria-label={openPickerAriaLabel}
+						sx={{ marginLeft: 0, padding: 0 }}>
+						<CalendarIcon size="sm" />
+					</IconButton>
 				}
 				slotProps={{
 					input: { ref: inputRef },
@@ -94,8 +91,9 @@ function JoyDatePicker(props: DatePickerProps<false>) {
 
 export default function JoyV6Field() {
 	return (
-		<LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="fa">
+		<LocalizationProvider dateAdapter={AdapterDayjsJalali} adapterLocale="fa">
 			<JoyDatePicker
+				format="YY/MM/DD"
 				slotProps={{
 					field: { clearable: true },
 				}}

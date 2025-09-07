@@ -26,8 +26,6 @@ export default function SignupPage() {
 			{/* Right - Form */}
 			<Box
 				sx={{
-					height: "screen",
-					minHeight: "screen",
 					width: { xs: "100%", md: 1 / 2 },
 					display: "flex",
 					flexDirection: "column",
@@ -53,25 +51,29 @@ export default function SignupPage() {
 				<h1 className="w-full text-xl md:text-2xl font-bold text-center mt-2">ساخت حساب</h1>
 
 				<form className="h-full flex flex-col gap-5 w-full px-8 mx-auto mb-6 md:mb-0">
+					{/* Inputs */}
 					<Stack direction="column" spacing={2} sx={{ width: "100%", maxWidth: "sm" }}>
+						{/* Username */}
 						<FormControl sx={{ maxWidth: "sm", fontSize: 24 }}>
 							<FormLabel sx={{ color: "text.primary" }}>نام کاربری</FormLabel>
 							<Input
 								placeholder="username_1"
 								variant="soft"
-								sx={{ maxWidth: "sm", fontSize: 18 }}
+								sx={{ maxWidth: "sm", fontSize: 16 }}
 								className="ltr"
 							/>
 						</FormControl>
+						{/* Email */}
 						<FormControl sx={{ maxWidth: "sm", fontSize: 24 }}>
 							<FormLabel sx={{ color: "text.primary" }}>آدرس ایمیل</FormLabel>
 							<Input
 								placeholder="user@example.com"
 								variant="soft"
-								sx={{ maxWidth: "sm", fontSize: 18 }}
+								sx={{ maxWidth: "sm", fontSize: 16 }}
 								className="ltr"
 							/>
 						</FormControl>
+						{/* Birth and Gender */}
 						<div className="max-w-full flex items-center gap-1 justify-between">
 							<FormControl sx={{ width: "100%" }}>
 								<FormLabel sx={{ color: "text.primary" }}>جنسیت</FormLabel>
@@ -87,13 +89,14 @@ export default function SignupPage() {
 								<JoyV6Field />
 							</div>
 						</div>
+						{/* Passwords */}
 						<FormControl sx={{ color: "text.primary" }}>
 							<FormLabel sx={{ color: "text.primary" }}>رمز عبور</FormLabel>
 							<Input
-								placeholder="*********"
+								placeholder={showPass ? "123456" : "*********"}
 								type={showPass ? "text" : "password"}
 								variant="soft"
-								sx={{ maxWidth: "sm", fontSize: 18 }}
+								sx={{ maxWidth: "sm", fontSize: 16 }}
 								className="ltr"
 							/>
 							{showPass ? (
@@ -113,30 +116,18 @@ export default function SignupPage() {
 						<FormControl sx={{ color: "text.primary" }}>
 							<FormLabel sx={{ color: "text.primary" }}>تکرار رمز</FormLabel>
 							<Input
-								placeholder="*********"
+								placeholder={showPass ? "123456" : "*********"}
 								type={showPass ? "text" : "password"}
 								variant="soft"
-								sx={{ maxWidth: "sm", fontSize: 18 }}
+								sx={{ maxWidth: "sm", fontSize: 16 }}
 								className="ltr"
 							/>
-							{showPass ? (
-								<VisibilityOffIcon
-									sx={{ fontSize: 15 }}
-									className="cursor-pointer absolute right-1 top-[57%] text-gray-500"
-									onClick={() => setShowPass(!showPass)}
-								/>
-							) : (
-								<VisibilityIcon
-									sx={{ fontSize: 15 }}
-									className="cursor-pointer absolute right-1 top-[57%] text-gray-500"
-									onClick={() => setShowPass(!showPass)}
-								/>
-							)}
 						</FormControl>
 					</Stack>
+					{/* Sign-in */}
 					<div className="flex items-center gap-2 text-sm">
 						<Typography level="body-sm" sx={{ color: "text.primary" }}>
-							حساب کاربری دارید؟{" "}
+							حساب کاربری دارید؟
 						</Typography>
 						<Link to="/login" className="text-blue-600 hover:text-blue-500 transition-all">
 							ورود به حساب

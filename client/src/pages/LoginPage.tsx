@@ -21,12 +21,11 @@ export default function SignupPage() {
 				backgroundColor: "background.surface",
 				marginX: 3,
 				gap: 2,
+				boxShadow: 1,
 			}}>
 			{/* Right - Form */}
 			<Box
 				sx={{
-					height: "screen",
-					minHeight: "100%",
 					width: { xs: "100%", md: 1 / 2 },
 					display: "flex",
 					flexDirection: "column",
@@ -58,17 +57,17 @@ export default function SignupPage() {
 							<Input
 								placeholder="user@example.com"
 								variant="soft"
-								sx={{ maxWidth: "sm", fontSize: 18 }}
+								sx={{ maxWidth: "sm", fontSize: 16 }}
 								className="ltr"
 							/>
 						</FormControl>
 						<FormControl sx={{ color: "text.primary" }}>
 							<FormLabel sx={{ color: "text.primary" }}>رمز عبور</FormLabel>
 							<Input
-								placeholder="*********"
+								placeholder={showPass ? "123456" : "*********"}
 								type={showPass ? "text" : "password"}
 								variant="soft"
-								sx={{ maxWidth: "sm", fontSize: 18 }}
+								sx={{ maxWidth: "sm", fontSize: 16 }}
 								className="ltr"
 							/>
 							{showPass ? (
