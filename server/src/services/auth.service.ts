@@ -1,13 +1,23 @@
 import AppErrorCode from "../constants/errorCode";
-import { CONFLICT, UNAUTHORIZED } from "../constants/httpStatus";
+import { CONFLICT, INTERNAL_SERVER_ERROR, UNAUTHORIZED } from "../constants/httpStatus";
 import VerifyCodeType from "../constants/verifyCodeTypes";
 import SessionModel from "../models/session.model";
 import UserModel from "../models/user.model";
 import VerifyCodeModel from "../models/verifyCode.model";
 import appAssert from "../utils/AppAssert";
-import resend from "../utils/email";
-import { AccessTokenSignOptions, RefreshTokenSignOptions, signToken } from "../utils/jwtToken";
-import { oneDayFromNow } from "../utils/timing";
+import resend from "../utils/resend";
+
+import {
+	AccessTokenSignOptions,
+	RefreshTokenSignOptions,
+	signToken,
+	validateToken,
+	type RefreshTokenPayload,
+} from "../utils/jwtToken";
+import { oneDayFromNow, tenDaysFromNow } from "../utils/timing";
+import { sendMail } from "../utils/sendMail";
+import { APP_ORIGIN } from "../constants/env";
+import { getVerifyEmailTemplate } from "../utils/emailTemplates";
 
 /* ------------------------- Create Account Service ------------------------- */
 export type CreateAccountParams = {
@@ -47,13 +57,13 @@ export const createAccount = async (data: CreateAccountParams) => {
 		expiresAt: oneDayFromNow(),
 	});
 
-	// TODO:Send Verification Email
-	// const { data, error } = await resend.emails.send({
-	// 	from: "Acme <onboarding@resend.dev>",
-	// 	to: ["delivered@resend.dev"],
-	// 	subject: "hello world",
-	// 	html: "<strong>it works!</strong>",
-	// });
+	// we can late addjust this email for sending 6-digit codes
+	const url = `${APP_ORIGIN}/email/verify/${verifyUserCode._id}`;
+
+	await sendMail({
+		to: user.email,
+		...getVerifyEmailTemplate(url),
+	});
 
 	// Create Session
 	const session = await SessionModel.create({ userId, userAgent: data.userAgent });
@@ -108,7 +118,7 @@ export const loginService = async (data: LoginParams) => {
 		...RefreshTokenSignOptions,
 		audience: [user.role],
 	});
-	
+
 	// Access Token
 	const accessToken = signToken(
 		{ userId, ...sessionInfo },
@@ -119,4 +129,72 @@ export const loginService = async (data: LoginParams) => {
 	);
 
 	return { user: user.omitPassword(), refreshToken, accessToken };
+};
+
+/* -------------------------- Refresh Token Service ------------------------- */
+export const refreshUserAccessToken = async (refreshToken: string) => {
+	// find and validate the ref token from user request
+	const { payload } = validateToken<RefreshTokenPayload>(refreshToken, {
+		secret: RefreshTokenSignOptions.secret,
+	});
+	appAssert(payload, UNAUTHORIZED, "Invalid Refresh Token", AppErrorCode.InvalidRefreshToken);
+
+	const now = Date.now();
+	// Ref token has the session ID we use it to find the session
+	const session = await SessionModel.findById(payload.sessionId);
+	appAssert(
+		session && session.expiresAt.getTime() > now,
+		UNAUTHORIZED,
+		"Session expired",
+		AppErrorCode.UnauthorizedAccess
+	);
+
+	// refresh session if it expires in the next 24hrs
+	const refreshTheSession = session.expiresAt.getTime() - now <= 24 * 60 * 60 * 1000;
+	if (refreshTheSession) {
+		session.expiresAt = tenDaysFromNow();
+		await session.save();
+	}
+	// New ref token
+	const newRefreshToken = refreshTheSession ? signToken({ sessionId: session._id }) : undefined;
+
+	const accessToken = signToken({
+		userId: session.userId,
+		sessionId: session._id,
+	});
+
+	return { accessToken, newRefreshToken };
+};
+
+/* ------------------------------ Email Service ----------------------------- */
+/**
+ * 	This service dosen't have a route of it self
+ * 	it sends veriftication email and password reset emails
+ *
+ *	Simple - Its a axync function gets a code(string)
+ * 	it checks the code by searching the verify code model on our database
+ *
+ * 	we then get the userId and change its verified status to true
+ *	then delete the verification code and return the user
+ * */
+
+export const verifyEmail = async (code: string) => {
+	const validCode = await VerifyCodeModel.findOne({
+		_id: code,
+		type: VerifyCodeType.EmailVerification,
+		expiresAt: { $gt: new Date() },
+	});
+	appAssert(validCode, UNAUTHORIZED, "Invalid or expired Code", AppErrorCode.InvalidVerificationCode);
+
+	const updatedUser = await UserModel.findByIdAndUpdate(
+		validCode.userId,
+		{
+			verified: true,
+		},
+		{ new: true }
+	);
+	appAssert(updatedUser, INTERNAL_SERVER_ERROR, "Failed to verify Email", AppErrorCode.ValidationError);
+	await validCode.deleteOne();
+
+	return { user: updatedUser.omitPassword() };
 };

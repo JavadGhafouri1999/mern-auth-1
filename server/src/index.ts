@@ -18,12 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors({ origin: APP_ORIGIN, credentials: true }));
 app.use(cookieParser());
 
-app.get(
-	"/health",
-	catchErrors(async (_, res, next) => {
-		return res.status(OK).json("Server is Up - Health Check path");
-	})
-);
+/* --------------------------------- Routes --------------------------------- */
 
 app.use("/auth", authRoutes);
 

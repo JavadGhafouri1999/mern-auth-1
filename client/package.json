@@ -18,6 +18,7 @@
     "@mui/x-date-pickers": "^8.11.1",
     "@tailwindcss/vite": "^4.1.12",
     "@zoomit/dayjs-jalali-plugin": "^0.1.11",
+    "axios": "^1.11.0",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.18",
     "dayjs-jalali": "^0.0.2",

@@ -5,9 +5,26 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { Link } from "react-router";
 import ThemeToggle from "../components/ThemeToggle";
+import { useForm } from "react-hook-form";
+import type { SubmitHandler } from "react-hook-form";
+
+type InputTypes = {
+	email: string;
+	password: string;
+};
 
 export default function SignupPage() {
 	const [showPass, setShowPass] = useState(false);
+
+	const {
+		register,
+		handleSubmit,
+		watch,
+		formState: { errors },
+	} = useForm<InputTypes>();
+
+	const onSubmit: SubmitHandler<InputTypes> = (data) => console.log(data);
+
 	return (
 		<Container
 			sx={{
@@ -21,7 +38,7 @@ export default function SignupPage() {
 				backgroundColor: "background.surface",
 				marginX: 3,
 				gap: 2,
-				boxShadow: 1,
+				boxShadow: "md",
 			}}>
 			{/* Right - Form */}
 			<Box
@@ -50,11 +67,14 @@ export default function SignupPage() {
 				</div>
 				<h1 className="w-full text-xl md:text-2xl font-bold text-center mt-2">ورود به حساب</h1>
 
-				<form className="h-full flex flex-col gap-5 w-full px-8 mx-auto mb-6 md:mb-0">
+				<form
+					onSubmit={handleSubmit(onSubmit)}
+					className="h-full flex flex-col gap-5 w-full px-8 mx-auto mb-6 md:mb-0">
 					<Stack direction="column" spacing={2} sx={{ width: "100%", maxWidth: "sm" }}>
 						<FormControl sx={{ maxWidth: "sm", fontSize: 24 }}>
 							<FormLabel sx={{ color: "text.primary" }}>آدرس ایمیل</FormLabel>
 							<Input
+								{...register("email", { required: true })}
 								placeholder="user@example.com"
 								variant="soft"
 								sx={{ maxWidth: "sm", fontSize: 16 }}
@@ -64,6 +84,7 @@ export default function SignupPage() {
 						<FormControl sx={{ color: "text.primary" }}>
 							<FormLabel sx={{ color: "text.primary" }}>رمز عبور</FormLabel>
 							<Input
+								{...register("password", { required: true })}
 								placeholder={showPass ? "123456" : "*********"}
 								type={showPass ? "text" : "password"}
 								variant="soft"
@@ -93,7 +114,7 @@ export default function SignupPage() {
 							ساخت حساب
 						</Link>
 					</div>
-					<Button variant="soft" sx={{ width: "100%" }}>
+					<Button type="submit" variant="soft" sx={{ width: "100%" }}>
 						ورود به حساب
 					</Button>
 				</form>

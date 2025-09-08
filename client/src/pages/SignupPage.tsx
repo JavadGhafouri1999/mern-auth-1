@@ -6,9 +6,32 @@ import ThemeToggle from "../components/ThemeToggle";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { Button, FormControl, FormLabel, Option, Select, Stack, Typography, Box, Container } from "@mui/joy";
+import { useForm, Controller } from "react-hook-form";
+import type { SubmitHandler } from "react-hook-form";
+import { Dayjs } from "dayjs";
+
+type InputTypes = {
+	username: string;
+	email: string;
+	sex: "male" | "female";
+	birth: Dayjs | null;
+	password: string;
+	confirmPassword: string;
+};
 
 export default function SignupPage() {
 	const [showPass, setShowPass] = useState(false);
+	const {
+		control,
+		register,
+		handleSubmit,
+		watch,
+		formState: { errors },
+	} = useForm<InputTypes>();
+
+	const onSubmit: SubmitHandler<InputTypes> = (data) =>
+		console.log({ ...data, birth: data.birth ? data.birth.format("YYYY-MM-DD") : null });
+
 	return (
 		<Container
 			sx={{
@@ -22,6 +45,7 @@ export default function SignupPage() {
 				backgroundColor: "background.surface",
 				marginX: 3,
 				gap: 2,
+				boxShadow: "md",
 			}}>
 			{/* Right - Form */}
 			<Box
@@ -50,13 +74,16 @@ export default function SignupPage() {
 				</div>
 				<h1 className="w-full text-xl md:text-2xl font-bold text-center mt-2">ساخت حساب</h1>
 
-				<form className="h-full flex flex-col gap-5 w-full px-8 mx-auto mb-6 md:mb-0">
+				<form
+					onSubmit={handleSubmit(onSubmit)}
+					className="h-full flex flex-col gap-5 w-full px-8 mx-auto mb-6 md:mb-0">
 					{/* Inputs */}
 					<Stack direction="column" spacing={2} sx={{ width: "100%", maxWidth: "sm" }}>
 						{/* Username */}
 						<FormControl sx={{ maxWidth: "sm", fontSize: 24 }}>
 							<FormLabel sx={{ color: "text.primary" }}>نام کاربری</FormLabel>
 							<Input
+								{...register("username", { required: true })}
 								placeholder="username_1"
 								variant="soft"
 								sx={{ maxWidth: "sm", fontSize: 16 }}
@@ -67,6 +94,7 @@ export default function SignupPage() {
 						<FormControl sx={{ maxWidth: "sm", fontSize: 24 }}>
 							<FormLabel sx={{ color: "text.primary" }}>آدرس ایمیل</FormLabel>
 							<Input
+								{...register("email", { required: true })}
 								placeholder="user@example.com"
 								variant="soft"
 								sx={{ maxWidth: "sm", fontSize: 16 }}
@@ -77,22 +105,46 @@ export default function SignupPage() {
 						<div className="max-w-full flex items-center gap-1 justify-between">
 							<FormControl sx={{ width: "100%" }}>
 								<FormLabel sx={{ color: "text.primary" }}>جنسیت</FormLabel>
-								<Select defaultValue="male" variant="soft">
-									<Option value="male">مرد</Option>
-									<Option value="female">زن</Option>
-								</Select>
+								<Controller
+									name="sex"
+									control={control}
+									defaultValue="male"
+									rules={{ required: true }}
+									render={({ field }) => (
+										<Select
+											value={field.value}
+											onChange={(_, newValue) => field.onChange(newValue)}
+											variant="soft">
+											<Option value="male">مرد</Option>
+											<Option value="female">زن</Option>
+										</Select>
+									)}
+								/>
 							</FormControl>
 							<div className="flex flex-col max-w-fit">
 								<FormLabel sx={{ color: "text.primary", fontSize: "sm" }}>
 									تاریخ تولد
 								</FormLabel>
-								<JoyV6Field />
+								<Controller
+									name="birth"
+									control={control}
+									defaultValue={null}
+									rules={{ required: "تاریخ تولد الزامی است" }}
+									render={({ field }) => (
+										<JoyV6Field
+											{...field}
+											value={field.value}
+											onChange={(newValue: Dayjs | null) => field.onChange(newValue)}
+										/>
+									)}
+								/>
 							</div>
 						</div>
 						{/* Passwords */}
 						<FormControl sx={{ color: "text.primary" }}>
 							<FormLabel sx={{ color: "text.primary" }}>رمز عبور</FormLabel>
 							<Input
+								{...register("password", { required: true })}
 								placeholder={showPass ? "123456" : "*********"}
 								type={showPass ? "text" : "password"}
 								variant="soft"
@@ -116,6 +168,7 @@ export default function SignupPage() {
 						<FormControl sx={{ color: "text.primary" }}>
 							<FormLabel sx={{ color: "text.primary" }}>تکرار رمز</FormLabel>
 							<Input
+								{...register("confirmPassword", { required: true })}
 								placeholder={showPass ? "123456" : "*********"}
 								type={showPass ? "text" : "password"}
 								variant="soft"
@@ -133,7 +186,7 @@ export default function SignupPage() {
 							ورود به حساب
 						</Link>
 					</div>
-					<Button variant="soft" sx={{ width: "100%" }}>
+					<Button type="submit" variant="soft" sx={{ width: "100%" }}>
 						ساخت حساب
 					</Button>
 				</form>
