@@ -1,5 +1,12 @@
 import catchErrors from "../utils/catchErrors";
-import { createAccount, loginService, refreshUserAccessToken, verifyEmail } from "../services/auth.service";
+import {
+	createAccount,
+	loginService,
+	refreshUserAccessToken,
+	resetPassword,
+	sendPasswordResetEmail,
+	verifyEmail,
+} from "../services/auth.service";
 import { CREATED, OK, UNAUTHORIZED } from "../constants/httpStatus";
 import {
 	clearAuthCookies,
@@ -7,18 +14,25 @@ import {
 	getRefreshTokenCookieOptions,
 	setAuthCookies,
 } from "../utils/cookies";
-import { loginSchema, registerSchema, verificationSchema } from "./auth.schemas";
+import {
+	emailSchema,
+	loginSchema,
+	registerSchema,
+	resetPasswordSchema,
+	verificationSchema,
+} from "./auth.schemas";
 import { validateToken } from "../utils/jwtToken";
 import SessionModel from "../models/session.model";
 import appAssert from "../utils/AppAssert";
 import AppErrorCode from "../constants/errorCode";
 
-/*
-    Each (Most) controllers need 3 steps
-    1- Validate request (input - zod)
-    2- Call The related service(/s)
-    3- Return a response for the user
+/**
+ *  Each (Most) controllers need 3 steps
+ *  	1- Validate request (input - zod)
+ *  	2- Call The related service(/s)
+ *  	3- Return a response for the user
  */
+
 export const registerHandler = catchErrors(async (req, res) => {
 	// 1
 	const request = registerSchema.parse({
@@ -73,4 +87,20 @@ export const verifyEmailHandler = catchErrors(async (req, res) => {
 	await verifyEmail(verificationCode);
 
 	return res.status(OK).json({ message: "Verification completed" });
+});
+
+export const sendPasswordResetHandler = catchErrors(async (req, res) => {
+	const email = emailSchema.parse(req.body.email);
+
+	await sendPasswordResetEmail(email);
+
+	return res.status(OK).json({ message: "Password reset link was sent" });
+});
+
+export const resetPasswordHandler = catchErrors(async (req, res) => {
+	const request = resetPasswordSchema.parse(req.body);
+	
+	await resetPassword(request);
+
+	return clearAuthCookies(res).status(OK).json({ message: "Password reset successfully" });
 });

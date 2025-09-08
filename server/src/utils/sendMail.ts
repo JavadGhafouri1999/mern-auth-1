@@ -13,7 +13,7 @@ type Params = {
 const getToEmail = (to: string) => (NODE_ENV === "development" ? "delivered@resend.dev" : to);
 
 export const sendMail = async ({ to, subject, text, html }: Params) => {
-	await resend.emails.send({
+	return await resend.emails.send({
 		from: "onboarding@resend.dev",
 		to: getToEmail(to),
 		subject,

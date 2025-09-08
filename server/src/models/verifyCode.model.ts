@@ -5,7 +5,6 @@ import type VerifyCodeType from "../constants/verifyCodeTypes";
 export interface VerifyCodeDocument extends mongoose.Document {
 	userId: mongoose.Types.ObjectId;
 	type: VerifyCodeType;
-	code: string;
 	createdAt: Date;
 	expiresAt: Date;
 }
@@ -13,7 +12,7 @@ export interface VerifyCodeDocument extends mongoose.Document {
 const verifyCodeSchema = new mongoose.Schema<VerifyCodeDocument>({
 	userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
 	type: { type: String, required: true },
-	code: { type: String, required: true },
+
 	createdAt: { type: Date, default: Date.now(), required: true },
 	expiresAt: { type: Date, required: true },
 });
