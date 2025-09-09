@@ -68,6 +68,11 @@ type VerifyParams = {
 };
 
 export class AuthenticationService {
+	/**
+	 * Creates a new user account with the provided user data
+	 * @param userData - The data needed to create a new account
+	 * @returns An object containing the created user (without password), refresh token, and access token
+	 */
 	createAccount = async (userData: CreateAccountParams) => {
 		// Check if we have this email already or not
 		const existingUser = await UserModel.findOne({ email: userData.email });
@@ -110,7 +115,7 @@ export class AuthenticationService {
 			sessionId: session._id,
 		};
 
-		// Refresh Token
+		// Generate authentication tokens
 		const refreshToken = signToken(
 			{ userId, ...sessionInfo },
 			{
@@ -118,7 +123,6 @@ export class AuthenticationService {
 				audience: [user.role],
 			}
 		);
-		// Access Token
 		const accessToken = signToken(
 			{ userId, ...sessionInfo },
 			{

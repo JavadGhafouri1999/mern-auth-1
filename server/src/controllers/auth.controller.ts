@@ -1,15 +1,6 @@
 import QRCode from "qrcode";
 import catchErrors from "../utils/catchErrors";
-import {
-	createAccount,
-	loginService,
-	refreshUserAccessToken,
-	resetPassword,
-	sendPasswordResetEmail,
-	verify2FaService,
-	verifyEmail,
-} from "../services/auth.service";
-import { BAD_REQUEST, CREATED, NOT_FOUND, OK, UNAUTHORIZED } from "../constants/httpStatus";
+import { CREATED, NOT_FOUND, OK, UNAUTHORIZED } from "../constants/httpStatus";
 import {
 	clearAuthCookies,
 	getAccessTokenCookieOptions,
@@ -30,6 +21,7 @@ import appAssert from "../utils/AppAssert";
 import AppErrorCode from "../constants/errorCode";
 import UserModel from "../models/user.model";
 import { authenticator } from "otplib";
+import type { AuthenticationService } from "../services/auth.service";
 
 /**
  *  Each (Most) controllers need 3 steps
@@ -38,122 +30,117 @@ import { authenticator } from "otplib";
  *  	3- Return a response for the user
  */
 
-/* -------------------------------- Register -------------------------------- */
-export const registerHandler = catchErrors(async (req, res) => {
-	// 1
-	const request = registerSchema.parse({
-		...req.body,
-		userAgent: req.headers["user-agent"],
+export class AuthenticationController {
+	constructor(private authService: AuthenticationService) {}
+	// Register
+	registerHandler = catchErrors(async (req, res) => {
+		const request = registerSchema.parse({
+			...req.body,
+			userAgent: req.headers["user-agent"],
+		});
+
+		const { user, refreshToken, accessToken } = await this.authService.createAccount({
+			...request,
+			role: "user",
+		});
+
+		return setAuthCookies({ res, refreshToken, accessToken })
+			.status(CREATED)
+			.json({ message: "You signed up successfully!", user });
 	});
-	// 2
-	const { user, refreshToken, accessToken } = await createAccount({ ...request, role: "user" });
-	// 3
-	return setAuthCookies({ res, refreshToken, accessToken })
-		.status(CREATED)
-		.json({ message: "You signed up successfully!", user });
-});
+	// Login
+	loginHandler = catchErrors(async (req, res) => {
+		const request = loginSchema.parse({ ...req.body, userAgent: req.headers["user-agent"] });
 
-/* ---------------------------------- Login --------------------------------- */
-export const loginHandler = catchErrors(async (req, res) => {
-	const request = loginSchema.parse({ ...req.body, userAgent: req.headers["user-agent"] });
+		const result = await this.authService.loginService(request);
+		if (result.twoFARequired) {
+			// No cookies yet — wait for OTP verification
+			return res.status(OK).json(result);
+		}
 
-	const result = await loginService(request);
-	if (result.twoFARequired) {
-		// No cookies yet — wait for OTP verification
-		return res.status(OK).json(result);
-	}
+		return setAuthCookies({ res, refreshToken: result.refreshToken, accessToken: result.accessToken })
+			.status(OK)
+			.json({ message: "Logged In!", user: result.user });
+	});
+	// logout
+	logoutHandler = catchErrors(async (req, res) => {
+		const accessToken = req.cookies.accessToken as string | undefined;
+		const { payload } = validateToken(accessToken || "");
+		if (payload) {
+			await SessionModel.findByIdAndDelete(payload.sessionId);
+		}
+		return clearAuthCookies(res).status(OK).json({ message: "Log out successful" });
+	});
+	// Refresher
+	refreshHandler = catchErrors(async (req, res) => {
+		const refreshToken = req.cookies.refreshToken as string | undefined;
+		appAssert(refreshToken, UNAUTHORIZED, "There is no valid Token", AppErrorCode.InvalidRefreshToken);
 
-	return setAuthCookies({ res, refreshToken: result.refreshToken, accessToken: result.accessToken })
-		.status(OK)
-		.json({ message: "Logged In!", user: result.user });
-});
+		const { accessToken, newRefreshToken } = await this.authService.refreshUserAccessToken(refreshToken);
 
-/* --------------------------------- Logout --------------------------------- */
-export const logoutHandler = catchErrors(async (req, res) => {
-	const accessToken = req.cookies.accessToken as string | undefined;
-	const { payload } = validateToken(accessToken || "");
-	if (payload) {
-		await SessionModel.findByIdAndDelete(payload.sessionId);
-	}
-	return clearAuthCookies(res).status(OK).json({ message: "Log out successful" });
-});
+		if (newRefreshToken) {
+			res.cookie("refreshToken", refreshToken, getRefreshTokenCookieOptions());
+		}
+		return res
+			.status(OK)
+			.cookie("accessToken", accessToken, getAccessTokenCookieOptions())
+			.json({ message: "Access Token rfreshed" });
+	});
+	// Verify Email
+	verifyEmailHandler = catchErrors(async (req, res) => {
+		const verificationCode = verificationSchema.parse(req.params.code);
 
-/* --------------------------------- Refresh -------------------------------- */
-export const refreshHandler = catchErrors(async (req, res) => {
-	const refreshToken = req.cookies.refreshToken as string | undefined;
-	appAssert(refreshToken, UNAUTHORIZED, "There is no valid Token", AppErrorCode.InvalidRefreshToken);
+		await this.authService.verifyEmail(verificationCode);
 
-	const { accessToken, newRefreshToken } = await refreshUserAccessToken(refreshToken);
+		return res.status(OK).json({ message: "Verification completed" });
+	});
+	// Send password Reset
+	sendPasswordResetHandler = catchErrors(async (req, res) => {
+		const email = emailSchema.parse(req.body.email);
 
-	if (newRefreshToken) {
-		res.cookie("refreshToken", refreshToken, getRefreshTokenCookieOptions());
-	}
-	return res
-		.status(OK)
-		.cookie("accessToken", accessToken, getAccessTokenCookieOptions())
-		.json({ message: "Access Token rfreshed" });
-});
+		await this.authService.sendPasswordResetEmail(email);
 
-/* ------------------------------ Verify Email ------------------------------ */
-export const verifyEmailHandler = catchErrors(async (req, res) => {
-	const verificationCode = verificationSchema.parse(req.params.code);
+		return res.status(OK).json({ message: "Password reset link was sent" });
+	});
+	// Reset the password
+	resetPasswordHandler = catchErrors(async (req, res) => {
+		const request = resetPasswordSchema.parse(req.body);
 
-	await verifyEmail(verificationCode);
+		await this.authService.resetPassword(request);
 
-	return res.status(OK).json({ message: "Verification completed" });
-});
+		return clearAuthCookies(res).status(OK).json({ message: "Password reset successfully" });
+	});
+	// 2FA Setup
+	setup2FA = catchErrors(async (req, res) => {
+		const UserId = req.userId;
+		const user = await UserModel.findById(UserId);
+		appAssert(user, NOT_FOUND, "User was not found");
 
-/* ----------------------------- Password Email ----------------------------- */
-export const sendPasswordResetHandler = catchErrors(async (req, res) => {
-	const email = emailSchema.parse(req.body.email);
+		const secret = authenticator.generateSecret();
+		const otpauth = authenticator.keyuri(user.email, "myApp", secret);
 
-	await sendPasswordResetEmail(email);
+		await UserModel.findByIdAndUpdate(UserId, { twoFactorSecret: secret });
 
-	return res.status(OK).json({ message: "Password reset link was sent" });
-});
+		const qrImageUrl = await QRCode.toDataURL(otpauth);
+		res.json({ qrImageUrl, manualKey: secret });
+	});
+	// 2FA Verify
+	verify2FA = catchErrors(async (req, res) => {
+		const { token } = twoFaTokenSchema.parse(req.body);
+		const authHeader = req.headers.authorization?.split(" ")[1] || req.cookies.accessToken;
+		appAssert(authHeader, UNAUTHORIZED, "Unauthorized", AppErrorCode.InvalidAccessToken);
 
-/* ----------------------------- Reset Password ----------------------------- */
-export const resetPasswordHandler = catchErrors(async (req, res) => {
-	const request = resetPasswordSchema.parse(req.body);
+		const result = await this.authService.verify2FaService({ token, authHeader });
 
-	await resetPassword(request);
+		if (result.mode === "login") {
+			res.cookie("accessToken", result.accessToken, { httpOnly: true, sameSite: "strict" });
+			res.cookie("refreshToken", result.refreshToken, { httpOnly: true, sameSite: "strict" });
 
-	return clearAuthCookies(res).status(OK).json({ message: "Password reset successfully" });
-});
+			return res.status(OK).json({ message: "Login complete", user: result.user });
+		}
 
-/* ----------------------------------- 2FA ---------------------------------- */
-// Setup
-export const setup2FA = catchErrors(async (req, res) => {
-	const UserId = req.userId;
-	const user = await UserModel.findById(UserId);
-	appAssert(user, NOT_FOUND, "User was not found");
-
-	const secret = authenticator.generateSecret();
-	const otpauth = authenticator.keyuri(user.email, "myApp", secret);
-
-	await UserModel.findByIdAndUpdate(UserId, { twoFactorSecret: secret });
-
-	const qrImageUrl = await QRCode.toDataURL(otpauth);
-	res.json({ qrImageUrl, manualKey: secret });
-});
-
-// Verify
-export const verify2FA = catchErrors(async (req, res) => {
-	const { token } = twoFaTokenSchema.parse(req.body);
-	const authHeader = req.headers.authorization?.split(" ")[1] || req.cookies.accessToken;
-	appAssert(authHeader, UNAUTHORIZED, "Unauthorized", AppErrorCode.InvalidAccessToken);
-
-	const result = await verify2FaService({ token, authHeader });
-
-	if (result.mode === "login") {
-		res.cookie("accessToken", result.accessToken, { httpOnly: true, sameSite: "strict" });
-		res.cookie("refreshToken", result.refreshToken, { httpOnly: true, sameSite: "strict" });
-
-		return res.status(OK).json({ message: "Login complete", user: result.user });
-	}
-
-	return res.status(OK).json({ message: "2FA enabled" });
-});
-
-// Reset
-export const reset2FA = catchErrors(async (req, res) => {});
+		return res.status(OK).json({ message: "2FA enabled" });
+	});
+	// 2FA Reset
+	reset2FA = catchErrors(async (req, res) => {});
+}

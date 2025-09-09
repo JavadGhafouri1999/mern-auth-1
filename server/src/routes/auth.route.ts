@@ -1,33 +1,27 @@
 import { Router, type Router as ExpressRouter } from "express";
-import {
-	loginHandler,
-	logoutHandler,
-	refreshHandler,
-	registerHandler,
-	resetPasswordHandler,
-	sendPasswordResetHandler,
-	verifyEmailHandler,
-	setup2FA,
-	verify2FA,
-	reset2FA,
-} from "../controllers/auth.controller";
+
 import authenticate from "../middleware/authenticate";
+import { AuthenticationService } from "../services/auth.service";
+import { AuthenticationController } from "../controllers/auth.controller";
 
 // prefix => /auth
 const authRoutes: ExpressRouter = Router();
 
-authRoutes.post("/register", registerHandler);
-authRoutes.post("/login", loginHandler);
-authRoutes.get("/logout", logoutHandler);
+const authService = new AuthenticationService();
+const authController = new AuthenticationController(authService);
+
+authRoutes.post("/register", authController.registerHandler);
+authRoutes.post("/login", authController.loginHandler);
+authRoutes.get("/logout", authController.logoutHandler);
 // 2FA
-authRoutes.post("/2fa/setup", authenticate, setup2FA);
-authRoutes.post("/2fa/verify", authenticate, verify2FA);
-authRoutes.get("/2fa/reset", authenticate, reset2FA);
+authRoutes.post("/2fa/setup", authenticate, authController.setup2FA);
+authRoutes.post("/2fa/verify", authenticate, authController.verify2FA);
+authRoutes.get("/2fa/reset", authenticate, authController.reset2FA);
 // Refresh Token
-authRoutes.get("/refresh", refreshHandler);
+authRoutes.get("/refresh", authController.refreshHandler);
 // Email & Password
-authRoutes.get("/email/verify/:code", verifyEmailHandler);
-authRoutes.post("/password/forgot", sendPasswordResetHandler);
-authRoutes.post("/password/reset", resetPasswordHandler);
+authRoutes.get("/email/verify/:code", authController.verifyEmailHandler);
+authRoutes.post("/password/forgot", authController.sendPasswordResetHandler);
+authRoutes.post("/password/reset", authController.resetPasswordHandler);
 
 export default authRoutes;
