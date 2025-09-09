@@ -8,11 +8,10 @@ import {
 	UNAUTHORIZED,
 } from "../constants/httpStatus";
 import VerifyCodeType from "../constants/verifyCodeTypes";
-import SessionModel from "../models/session.model";
+import SessionModel, { type SessionDocument } from "../models/session.model";
 import UserModel, { type UserDocument } from "../models/user.model";
-import VerifyCodeModel from "../models/verifyCode.model";
+import VerifyCodeModel, { type VerifyCodeDocument } from "../models/verifyCode.model";
 import appAssert from "../utils/AppAssert";
-import resend from "../utils/resend";
 
 import {
 	AccessTokenSignOptions,
@@ -27,47 +26,54 @@ import { APP_ORIGIN } from "../constants/env";
 import { getPasswordResetTemplate, getVerifyEmailTemplate } from "../utils/emailTemplates";
 import { hashValue } from "../utils/hash";
 import { authenticator } from "otplib";
-
-export type CreateAccountParams = {
-	username: string;
-	email: string;
-	sex: "male" | "female";
-	birth: string;
-	password: string;
-	confirmPassword: string;
-	userAgent?: string | undefined;
-	role: "user" | "assistant" | "admin";
-};
-
-export type LoginParams = {
-	email: string;
-	password: string;
-	userAgent?: string | undefined;
-};
-type LoginResult =
-	| {
-			user: ReturnType<UserDocument["omitPassword"]>;
-			refreshToken: string;
-			accessToken: string;
-			twoFARequired?: false;
-	  }
-	| {
-			user: ReturnType<UserDocument["omitPassword"]>;
-			twoFARequired: true;
-			tempToken: string;
-	  };
-
-type ResetPasswordParams = {
-	verificationCode: string;
-	newPassword: string;
-};
-
-type VerifyParams = {
-	token: string;
-	authHeader: string;
-};
+import type { Model, Types } from "mongoose";
+import type {
+	CreateAccountParams,
+	LoginParams,
+	LoginResult,
+	ResetPasswordParams,
+	VerifyParams,
+} from "../types/auth.types";
 
 export class AuthenticationService {
+	constructor(
+		private userModel: Model<UserDocument>,
+		private sessionModel: Model<SessionDocument>,
+		private verifyCodeModel: Model<VerifyCodeDocument>
+	) {}
+	/* ----------------------------- helper function ---------------------------- */
+
+	private async userExist(email: string): Promise<boolean> {
+		const user = await this.userModel.findOne({ email }).lean().exec();
+		return !!user;
+	}
+
+	// We don not await here just send the promise to the called they await for it
+	private async getUserbyEmail(email: string): Promise<UserDocument | null> {
+		return this.userModel.findOne({ email }).exec();
+	}
+
+	private createAccessToken(userId: Types.ObjectId, sessionId: Types.ObjectId, userRole: string) {
+		return signToken(
+			{ userId, sessionId },
+			{
+				...AccessTokenSignOptions,
+				audience: [userRole],
+			}
+		);
+	}
+
+	private createRefreshToken(sessionId: Types.ObjectId, userRole: string) {
+		return signToken(
+			{ sessionId },
+			{
+				...RefreshTokenSignOptions,
+				audience: [userRole],
+			}
+		);
+	}
+
+	/* -------------------------------- Services -------------------------------- */
 	/**
 	 * Creates a new user account with the provided user data
 	 * @param userData - The data needed to create a new account
@@ -75,7 +81,7 @@ export class AuthenticationService {
 	 */
 	createAccount = async (userData: CreateAccountParams) => {
 		// Check if we have this email already or not
-		const existingUser = await UserModel.findOne({ email: userData.email });
+		const existingUser = await this.userExist(userData.email);
 
 		appAssert(!existingUser, CONFLICT, "This email is already in use!", AppErrorCode.EmailAlreadyInUse);
 
@@ -111,25 +117,14 @@ export class AuthenticationService {
 
 		// Create Session
 		const session = await SessionModel.create({ userId, userAgent: userData.userAgent });
-		const sessionInfo = {
-			sessionId: session._id,
-		};
 
 		// Generate authentication tokens
-		const refreshToken = signToken(
-			{ userId, ...sessionInfo },
-			{
-				...RefreshTokenSignOptions,
-				audience: [user.role],
-			}
+		const accessToken = this.createAccessToken(
+			user._id as Types.ObjectId,
+			session._id as Types.ObjectId,
+			user.role
 		);
-		const accessToken = signToken(
-			{ userId, ...sessionInfo },
-			{
-				...AccessTokenSignOptions,
-				audience: [user.role],
-			}
-		);
+		const refreshToken = this.createRefreshToken(session._id as Types.ObjectId, user.role);
 
 		// Return all we need
 		return { user: user.omitPassword(), refreshToken, accessToken };
@@ -138,7 +133,7 @@ export class AuthenticationService {
 	loginService = async (data: LoginParams): Promise<LoginResult> => {
 		// First check if the email exist
 
-		const user = await UserModel.findOne({ email: data.email });
+		const user = await this.getUserbyEmail(data.email);
 		appAssert(user, UNAUTHORIZED, "Invalid Credentials", AppErrorCode.InvalidCredentials);
 
 		const userId = user._id;
@@ -252,7 +247,7 @@ export class AuthenticationService {
 
 	sendPasswordResetEmail = async (email: string) => {
 		// Check if the email is in database
-		const user = await UserModel.findOne({ email });
+		const user = await this.getUserbyEmail(email);
 		appAssert(user, BAD_REQUEST, "user not found", AppErrorCode.UserNotFound);
 		const userId = user._id;
 

@@ -3,11 +3,14 @@ import { Router, type Router as ExpressRouter } from "express";
 import authenticate from "../middleware/authenticate";
 import { AuthenticationService } from "../services/auth.service";
 import { AuthenticationController } from "../controllers/auth.controller";
+import UserModel from "../models/user.model";
+import SessionModel from "../models/session.model";
+import VerifyCodeModel from "../models/verifyCode.model";
 
 // prefix => /auth
 const authRoutes: ExpressRouter = Router();
 
-const authService = new AuthenticationService();
+const authService = new AuthenticationService(UserModel, SessionModel, VerifyCodeModel);
 const authController = new AuthenticationController(authService);
 
 authRoutes.post("/register", authController.registerHandler);
