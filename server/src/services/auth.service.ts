@@ -98,7 +98,7 @@ export class AuthenticationService {
 
 		// Create Verification code to send to user's email
 		const code = Math.floor(100000 + Math.random() * 900000).toString(); // e.g. "483729"
-		const verifyUserCode = await VerifyCodeModel.create({
+		const verifyUserCode = await this.verifyCodeModel.create({
 			userId,
 			type: VerifyCodeType.EmailVerification,
 			code,
@@ -116,7 +116,7 @@ export class AuthenticationService {
 		appAssert(data?.id, INTERNAL_SERVER_ERROR, `${error?.name}-${error?.message}`);
 
 		// Create Session
-		const session = await SessionModel.create({ userId, userAgent: userData.userAgent });
+		const session = await this.sessionModel.create({ userId, userAgent: userData.userAgent });
 
 		// Generate authentication tokens
 		const accessToken = this.createAccessToken(
@@ -142,7 +142,7 @@ export class AuthenticationService {
 		appAssert(isPasswordValid, UNAUTHORIZED, "Invalid Credentials", AppErrorCode.InvalidCredentials);
 
 		// Create a new Session for logged in user
-		const session = await SessionModel.create({ userId, userAgent: data.userAgent });
+		const session = await this.sessionModel.create({ userId, userAgent: data.userAgent });
 		const sessionInfo = {
 			sessionId: session._id,
 		};
@@ -161,20 +161,13 @@ export class AuthenticationService {
 			};
 		}
 
-		// Refresh Token
-		const refreshToken = signToken(sessionInfo, {
-			...RefreshTokenSignOptions,
-			audience: [user.role],
-		});
-
-		// Access Token
-		const accessToken = signToken(
-			{ userId, ...sessionInfo },
-			{
-				...AccessTokenSignOptions,
-				audience: [user.role],
-			}
+		// Generate authentication tokens
+		const accessToken = this.createAccessToken(
+			user._id as Types.ObjectId,
+			session._id as Types.ObjectId,
+			user.role
 		);
+		const refreshToken = this.createRefreshToken(session._id as Types.ObjectId, user.role);
 
 		return { user: user.omitPassword(), refreshToken, accessToken };
 	};
@@ -188,13 +181,15 @@ export class AuthenticationService {
 
 		const now = Date.now();
 		// Ref token has the session ID we use it to find the session
-		const session = await SessionModel.findById(payload.sessionId);
+		const session = await this.sessionModel.findById(payload.sessionId);
 		appAssert(
 			session && session.expiresAt.getTime() > now,
 			UNAUTHORIZED,
 			"Session expired",
 			AppErrorCode.UnauthorizedAccess
 		);
+		const user = await this.userModel.findById(session.userId);
+		appAssert(user, NOT_FOUND, "User related to this session was not found");
 
 		// refresh session if it expires in the next 24hrs
 		const refreshTheSession = session.expiresAt.getTime() - now <= 24 * 60 * 60 * 1000;
@@ -203,12 +198,11 @@ export class AuthenticationService {
 			await session.save();
 		}
 		// New ref token
-		const newRefreshToken = refreshTheSession ? signToken({ sessionId: session._id }) : undefined;
-
-		const accessToken = signToken({
-			userId: session.userId,
-			sessionId: session._id,
-		});
+		// Generate authentication tokens
+		const accessToken = this.createAccessToken(session.userId, session._id as Types.ObjectId, user.role);
+		const newRefreshToken = refreshTheSession
+			? this.createRefreshToken(session._id as Types.ObjectId, user.role)
+			: undefined;
 
 		return { accessToken, newRefreshToken };
 	};
@@ -232,7 +226,7 @@ export class AuthenticationService {
 		});
 		appAssert(validCode, UNAUTHORIZED, "Invalid or expired Code", AppErrorCode.InvalidVerificationCode);
 
-		const updatedUser = await UserModel.findByIdAndUpdate(
+		const updatedUser = await this.userModel.findByIdAndUpdate(
 			validCode.userId,
 			{
 				verified: true,
@@ -284,7 +278,7 @@ export class AuthenticationService {
 	 */
 	resetPassword = async ({ verificationCode, newPassword }: ResetPasswordParams) => {
 		// Check if the code is valid (exist and not expired)
-		const validCode = await VerifyCodeModel.findOne({
+		const validCode = await this.verifyCodeModel.findOne({
 			_id: verificationCode,
 			type: VerifyCodeType.PasswordReset,
 			expiresAt: { $gt: new Date() },
@@ -295,11 +289,12 @@ export class AuthenticationService {
 			"The reset code is invalid or expired",
 			AppErrorCode.PasswordResetTokenExpired
 		);
+
 		// Hash the new password
 		const hashedPassword = await hashValue(newPassword);
 
 		// Update the user password - find the user by VerifyCode userId
-		const updatedUser = await UserModel.findByIdAndUpdate(
+		const updatedUser = await this.userModel.findByIdAndUpdate(
 			validCode.userId,
 			{
 				password: hashedPassword,
@@ -310,7 +305,7 @@ export class AuthenticationService {
 
 		await validCode.deleteOne();
 
-		await SessionModel.deleteMany({
+		await this.sessionModel.deleteMany({
 			userId: updatedUser._id,
 		});
 
@@ -322,11 +317,12 @@ export class AuthenticationService {
 	verify2FaService = async ({ token, authHeader }: VerifyParams) => {
 		const { payload } = validateToken(authHeader);
 		appAssert(payload, UNAUTHORIZED, "Inavild or expired shot token");
+
 		const sessionInfo = {
 			sessionId: payload.sessionId,
 		};
 
-		const user = await UserModel.findById(payload.userId);
+		const user = await this.userModel.findById(payload.userId);
 		appAssert(user, NOT_FOUND, "user was not found");
 		appAssert(user.twoFactorSecret, BAD_REQUEST, "2FA not active");
 		const userId = user._id;
@@ -336,21 +332,14 @@ export class AuthenticationService {
 
 		if (payload.twoFAPending) {
 			// Refresh Token
-			const refreshToken = signToken(sessionInfo, {
-				...RefreshTokenSignOptions,
-				audience: [user.role],
-			});
-
-			// Access Token
-			const accessToken = signToken(
-				{ userId, ...sessionInfo },
-				{
-					...AccessTokenSignOptions,
-					audience: [user.role],
-				}
+			const refreshToken = this.createRefreshToken(payload.sessionId as Types.ObjectId, user.role);
+			const accessToken = this.createAccessToken(
+				userId as Types.ObjectId,
+				payload.sessionId as Types.ObjectId,
+				user.role
 			);
 
-			return { mode: "login", user, accessToken, refreshToken };
+			return { mode: "login", user: user.omitPassword(), accessToken, refreshToken };
 		}
 
 		// ENABLE MODE - just ativate the 2FA

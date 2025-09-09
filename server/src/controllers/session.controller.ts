@@ -1,5 +1,4 @@
 import z from "zod";
-import AppErrorCode from "../constants/errorCode";
 import { NOT_FOUND, OK } from "../constants/httpStatus";
 import SessionModel from "../models/session.model";
 import appAssert from "../utils/AppAssert";
