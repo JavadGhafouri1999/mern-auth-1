@@ -4,6 +4,8 @@ import AppRoutes from "./routes";
 import { ThemeProvider, createTheme, useColorScheme as useMaterialColorScheme } from "@mui/material/styles";
 import { extendTheme as extendJoyTheme, useColorScheme, CssVarsProvider, THEME_ID } from "@mui/joy/styles";
 import InitColorSchemeScript from "@mui/joy/InitColorSchemeScript";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const theme = createTheme({ colorSchemes: { light: true, dark: true } });
 const joyTheme = extendJoyTheme({
@@ -36,17 +38,21 @@ function SyncThemeMode() {
 	}, [mode, setMode]);
 	return null;
 }
+const queryClient = new QueryClient();
 
 export default function App() {
 	return (
-		<ThemeProvider theme={theme}>
-			<CssVarsProvider theme={{ [THEME_ID]: joyTheme }}>
-				<SyncThemeMode />
-				<InitColorSchemeScript />
-				<BrowserRouter>
-					<AppRoutes />
-				</BrowserRouter>
-			</CssVarsProvider>
-		</ThemeProvider>
+		<QueryClientProvider client={queryClient}>
+			<ThemeProvider theme={theme}>
+				<CssVarsProvider theme={{ [THEME_ID]: joyTheme }}>
+					<SyncThemeMode />
+					<InitColorSchemeScript />
+					<BrowserRouter>
+						<AppRoutes />
+					</BrowserRouter>
+				</CssVarsProvider>
+			</ThemeProvider>
+			<ReactQueryDevtools initialIsOpen={false} />
+		</QueryClientProvider>
 	);
 }

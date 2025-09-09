@@ -12,6 +12,7 @@ export type RefreshTokenPayload = {
 export type AccessTokenPayload = {
 	userId: UserDocument["_id"];
 	sessionId: SessionDocument["_id"];
+	twoFAPending?: boolean;
 };
 
 const defaults: SignOptions = {
@@ -35,7 +36,7 @@ export const RefreshTokenSignOptions: signOptionsAndSecret = {
 export const signToken = (
 	payload: RefreshTokenPayload | AccessTokenPayload,
 	options?: signOptionsAndSecret
-) => {
+): string => {
 	const { secret, ...SignOpts } = options || AccessTokenSignOptions;
 	return jwt.sign(payload, secret, {
 		...defaults,

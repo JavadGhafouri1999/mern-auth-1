@@ -6,9 +6,10 @@ import connectDB from "./config/db";
 import cors from "cors";
 import errorHandler from "./middleware/errorHandler";
 import chalk from "chalk";
-import catchErrors from "./utils/catchErrors";
-import { OK } from "./constants/httpStatus";
 import authRoutes from "./routes/auth.route";
+import userRoute from "./routes/user.route";
+import authenticate from "./middleware/authenticate";
+import sessionRoute from "./routes/session.route";
 
 /* ------------------------------- App Configs ------------------------------ */
 
@@ -20,9 +21,13 @@ app.use(cookieParser());
 
 /* --------------------------------- Routes --------------------------------- */
 
+// Auth - Public
 app.use("/auth", authRoutes);
+// User & Others - Protected
+app.use("/user", authenticate, userRoute);
+app.use("/session", authenticate, sessionRoute);
 
-/* ------------------------ Error Handler Middleware ------------------------ */
+/* ------------------------------- Middleware; ------------------------------ */
 
 // When we write next(error) other middlewares deop the error to here so we can format it
 app.use(errorHandler);

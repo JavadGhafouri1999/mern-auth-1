@@ -1,3 +1,4 @@
+import QRCode from "qrcode";
 import catchErrors from "../utils/catchErrors";
 import {
 	createAccount,
@@ -5,9 +6,10 @@ import {
 	refreshUserAccessToken,
 	resetPassword,
 	sendPasswordResetEmail,
+	verify2FaService,
 	verifyEmail,
 } from "../services/auth.service";
-import { CREATED, OK, UNAUTHORIZED } from "../constants/httpStatus";
+import { BAD_REQUEST, CREATED, NOT_FOUND, OK, UNAUTHORIZED } from "../constants/httpStatus";
 import {
 	clearAuthCookies,
 	getAccessTokenCookieOptions,
@@ -19,12 +21,15 @@ import {
 	loginSchema,
 	registerSchema,
 	resetPasswordSchema,
+	twoFaTokenSchema,
 	verificationSchema,
 } from "./auth.schemas";
 import { validateToken } from "../utils/jwtToken";
 import SessionModel from "../models/session.model";
 import appAssert from "../utils/AppAssert";
 import AppErrorCode from "../constants/errorCode";
+import UserModel from "../models/user.model";
+import { authenticator } from "otplib";
 
 /**
  *  Each (Most) controllers need 3 steps
@@ -33,6 +38,7 @@ import AppErrorCode from "../constants/errorCode";
  *  	3- Return a response for the user
  */
 
+/* -------------------------------- Register -------------------------------- */
 export const registerHandler = catchErrors(async (req, res) => {
 	// 1
 	const request = registerSchema.parse({
@@ -47,16 +53,22 @@ export const registerHandler = catchErrors(async (req, res) => {
 		.json({ message: "You signed up successfully!", user });
 });
 
+/* ---------------------------------- Login --------------------------------- */
 export const loginHandler = catchErrors(async (req, res) => {
 	const request = loginSchema.parse({ ...req.body, userAgent: req.headers["user-agent"] });
 
-	const { user, refreshToken, accessToken } = await loginService(request);
+	const result = await loginService(request);
+	if (result.twoFARequired) {
+		// No cookies yet — wait for OTP verification
+		return res.status(OK).json(result);
+	}
 
-	return setAuthCookies({ res, refreshToken, accessToken })
+	return setAuthCookies({ res, refreshToken: result.refreshToken, accessToken: result.accessToken })
 		.status(OK)
-		.json({ message: "Logged In!", user });
+		.json({ message: "Logged In!", user: result.user });
 });
 
+/* --------------------------------- Logout --------------------------------- */
 export const logoutHandler = catchErrors(async (req, res) => {
 	const accessToken = req.cookies.accessToken as string | undefined;
 	const { payload } = validateToken(accessToken || "");
@@ -66,6 +78,7 @@ export const logoutHandler = catchErrors(async (req, res) => {
 	return clearAuthCookies(res).status(OK).json({ message: "Log out successful" });
 });
 
+/* --------------------------------- Refresh -------------------------------- */
 export const refreshHandler = catchErrors(async (req, res) => {
 	const refreshToken = req.cookies.refreshToken as string | undefined;
 	appAssert(refreshToken, UNAUTHORIZED, "There is no valid Token", AppErrorCode.InvalidRefreshToken);
@@ -81,6 +94,7 @@ export const refreshHandler = catchErrors(async (req, res) => {
 		.json({ message: "Access Token rfreshed" });
 });
 
+/* ------------------------------ Verify Email ------------------------------ */
 export const verifyEmailHandler = catchErrors(async (req, res) => {
 	const verificationCode = verificationSchema.parse(req.params.code);
 
@@ -89,6 +103,7 @@ export const verifyEmailHandler = catchErrors(async (req, res) => {
 	return res.status(OK).json({ message: "Verification completed" });
 });
 
+/* ----------------------------- Password Email ----------------------------- */
 export const sendPasswordResetHandler = catchErrors(async (req, res) => {
 	const email = emailSchema.parse(req.body.email);
 
@@ -97,10 +112,48 @@ export const sendPasswordResetHandler = catchErrors(async (req, res) => {
 	return res.status(OK).json({ message: "Password reset link was sent" });
 });
 
+/* ----------------------------- Reset Password ----------------------------- */
 export const resetPasswordHandler = catchErrors(async (req, res) => {
 	const request = resetPasswordSchema.parse(req.body);
-	
+
 	await resetPassword(request);
 
 	return clearAuthCookies(res).status(OK).json({ message: "Password reset successfully" });
 });
+
+/* ----------------------------------- 2FA ---------------------------------- */
+// Setup
+export const setup2FA = catchErrors(async (req, res) => {
+	const UserId = req.userId;
+	const user = await UserModel.findById(UserId);
+	appAssert(user, NOT_FOUND, "User was not found");
+
+	const secret = authenticator.generateSecret();
+	const otpauth = authenticator.keyuri(user.email, "myApp", secret);
+
+	await UserModel.findByIdAndUpdate(UserId, { twoFactorSecret: secret });
+
+	const qrImageUrl = await QRCode.toDataURL(otpauth);
+	res.json({ qrImageUrl, manualKey: secret });
+});
+
+// Verify
+export const verify2FA = catchErrors(async (req, res) => {
+	const { token } = twoFaTokenSchema.parse(req.body);
+	const authHeader = req.headers.authorization?.split(" ")[1] || req.cookies.accessToken;
+	appAssert(authHeader, UNAUTHORIZED, "Unauthorized", AppErrorCode.InvalidAccessToken);
+
+	const result = await verify2FaService({ token, authHeader });
+
+	if (result.mode === "login") {
+		res.cookie("accessToken", result.accessToken, { httpOnly: true, sameSite: "strict" });
+		res.cookie("refreshToken", result.refreshToken, { httpOnly: true, sameSite: "strict" });
+
+		return res.status(OK).json({ message: "Login complete", user: result.user });
+	}
+
+	return res.status(OK).json({ message: "2FA enabled" });
+});
+
+// Reset
+export const reset2FA = catchErrors(async (req, res) => {});

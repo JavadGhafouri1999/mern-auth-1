@@ -14,6 +14,8 @@ export const usernameSchema = z
 
 export const verificationSchema = z.string().min(1).max(24);
 
+export const twoFaTokenSchema = z.object({ token: z.string().min(1).max(6) });
+
 export const resetPasswordSchema = z.object({
 	verificationCode: z.string().min(1).max(24),
 	newPassword: passwordSchema,

@@ -9,7 +9,7 @@ import {
 } from "../constants/httpStatus";
 import VerifyCodeType from "../constants/verifyCodeTypes";
 import SessionModel from "../models/session.model";
-import UserModel from "../models/user.model";
+import UserModel, { type UserDocument } from "../models/user.model";
 import VerifyCodeModel from "../models/verifyCode.model";
 import appAssert from "../utils/AppAssert";
 import resend from "../utils/resend";
@@ -26,6 +26,7 @@ import { sendMail } from "../utils/sendMail";
 import { APP_ORIGIN } from "../constants/env";
 import { getPasswordResetTemplate, getVerifyEmailTemplate } from "../utils/emailTemplates";
 import { hashValue } from "../utils/hash";
+import { authenticator } from "otplib";
 
 /* ------------------------- Create Account Service ------------------------- */
 export type CreateAccountParams = {
@@ -109,7 +110,20 @@ export type LoginParams = {
 	userAgent?: string | undefined;
 };
 
-export const loginService = async (data: LoginParams) => {
+type LoginResult =
+	| {
+			user: ReturnType<UserDocument["omitPassword"]>;
+			refreshToken: string;
+			accessToken: string;
+			twoFARequired?: false;
+	  }
+	| {
+			user: ReturnType<UserDocument["omitPassword"]>;
+			twoFARequired: true;
+			tempToken: string;
+	  };
+
+export const loginService = async (data: LoginParams): Promise<LoginResult> => {
 	// First check if the email exist
 
 	const user = await UserModel.findOne({ email: data.email });
@@ -125,6 +139,20 @@ export const loginService = async (data: LoginParams) => {
 	const sessionInfo = {
 		sessionId: session._id,
 	};
+
+	// 4. If 2FA is enabled, return a short-lived token for verification
+	if (user.is2FA) {
+		const tempToken = signToken(
+			{ userId, ...sessionInfo, twoFAPending: true },
+			{ ...AccessTokenSignOptions, expiresIn: "5m" }
+		);
+
+		return {
+			user: user.omitPassword(),
+			twoFARequired: true,
+			tempToken,
+		};
+	}
 
 	// Refresh Token
 	const refreshToken = signToken(sessionInfo, {
@@ -293,4 +321,52 @@ export const resetPassword = async ({ verificationCode, newPassword }: ResetPass
 	return {
 		user: updatedUser.omitPassword(),
 	};
+};
+
+/* ----------------------------------- 2FA ---------------------------------- */
+
+type VerifyParams = {
+	token: string;
+	authHeader: string;
+};
+
+export const verify2FaService = async ({ token, authHeader }: VerifyParams) => {
+	const { payload } = validateToken(authHeader);
+	appAssert(payload, UNAUTHORIZED, "Inavild or expired shot token");
+	const sessionInfo = {
+		sessionId: payload.sessionId,
+	};
+
+	const user = await UserModel.findById(payload.userId);
+	appAssert(user, NOT_FOUND, "user was not found");
+	appAssert(user.twoFactorSecret, BAD_REQUEST, "2FA not active");
+	const userId = user._id;
+
+	const isValid = authenticator.check(token, user.twoFactorSecret);
+	appAssert(isValid, UNAUTHORIZED, "Invalid code");
+
+	if (payload.twoFAPending) {
+		// Refresh Token
+		const refreshToken = signToken(sessionInfo, {
+			...RefreshTokenSignOptions,
+			audience: [user.role],
+		});
+
+		// Access Token
+		const accessToken = signToken(
+			{ userId, ...sessionInfo },
+			{
+				...AccessTokenSignOptions,
+				audience: [user.role],
+			}
+		);
+
+		return { mode: "login", user, accessToken, refreshToken };
+	}
+
+	// ENABLE MODE - just ativate the 2FA
+	user.is2FA = true;
+	await user.save();
+
+	return { mode: "enable" };
 };

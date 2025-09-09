@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { compareValues, hashValue } from "../utils/hash";
+import { StringDecoder } from "node:string_decoder";
 
 export interface UserDocument extends mongoose.Document {
 	username: string;
@@ -7,14 +8,27 @@ export interface UserDocument extends mongoose.Document {
 	sex: "male" | "female";
 	role: "user" | "assistant" | "admin";
 	birth: string;
+	profileImage?: string;
 	password: string;
 	verified: boolean;
+	is2FA: boolean;
+	twoFactorSecret: string;
 	createdAt: Date;
 	updatedAt: Date;
 	comparePassword(val: string): Promise<Boolean>;
 	omitPassword(): Pick<
 		UserDocument,
-		"_id" | "email" | "username" | "sex" | "birth" | "role" | "verified" | "createdAt" | "updatedAt"
+		| "_id"
+		| "email"
+		| "username"
+		| "sex"
+		| "birth"
+		| "role"
+		| "verified"
+		| "is2FA"
+		| "profileImage"
+		| "createdAt"
+		| "updatedAt"
 	>;
 }
 
@@ -25,6 +39,9 @@ const userSchema = new mongoose.Schema<UserDocument>(
 		password: { type: String, required: true },
 		sex: { type: String, enum: ["male", "female"], required: true },
 		birth: { type: String, required: true },
+		profileImage: { type: String, default: "" },
+		is2FA: { type: Boolean, default: false },
+		twoFactorSecret: { type: String },
 		role: { type: String, enum: ["user", "assistant", "admin"], required: true, default: "user" },
 		verified: { type: Boolean, required: true, default: false },
 	},
