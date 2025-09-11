@@ -8,7 +8,7 @@ import { Link, useNavigate } from "react-router";
 import PersonIcon from "@mui/icons-material/Person";
 import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
-import { QueryClient, useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { logout } from "../../lib/api";
 import queryClient from "../../lib/queryClient";
 
@@ -88,9 +88,9 @@ export default function Navbar({ user, isLoading }: NavbarProps) {
 								<PersonIcon />
 								<Link to="profile">پروفایل</Link>
 							</MenuItem>
-							<MenuItem disabled>
+							<MenuItem>
 								<SettingsIcon />
-								<Link to="profile">تنظیمات</Link>
+								<Link to="/sessions">تنظیمات</Link>
 							</MenuItem>
 							<ListDivider />
 							<MenuItem onClick={handleLogout} color="danger">

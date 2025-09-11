@@ -36,7 +36,7 @@ export default function ProfilePage() {
 				justifyContent: "center",
 				height: "100%",
 				width: "100%",
-				paddingX: { xs: 4, sm: 6, xl: 8 },
+				paddingX: { xs: 2, sm: 4, xl: 6 },
 			}}>
 			<Container
 				sx={{
@@ -45,7 +45,7 @@ export default function ProfilePage() {
 					backgroundColor: "background.surface",
 					paddingBottom: 4,
 					paddingTop: 1,
-					paddingX: 6,
+					paddingX: 4,
 					borderRadius: 8,
 				}}>
 				{user ? (

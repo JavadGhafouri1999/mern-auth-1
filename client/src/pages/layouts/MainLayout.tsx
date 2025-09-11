@@ -1,10 +1,17 @@
-import { Navigate, Outlet } from "react-router";
+import { Navigate, Outlet, useLocation } from "react-router";
 import Navbar from "../../components/ui/Navbar";
 import { Box } from "@mui/joy";
 import useAuth from "../../hooks/useAuth";
+import LoadingPage from "../LoadingPage";
 
 export default function MainLayout() {
 	const { user, isLoading } = useAuth();
+	const location = useLocation();
+
+	if (isLoading) {
+		return <LoadingPage />; // or a spinner
+	}
+
 	return (
 		<Box
 			sx={{
@@ -22,7 +29,7 @@ export default function MainLayout() {
 					<Outlet />
 				</Box>
 			) : (
-				<Navigate to="/login" replace state={{ redirect: window.location.pathname }} />
+				<Navigate to="/login" replace state={{ redirect: location.pathname }} />
 			)}
 		</Box>
 	);

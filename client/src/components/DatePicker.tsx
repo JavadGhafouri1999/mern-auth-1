@@ -12,7 +12,6 @@ import { usePickerContext } from "@mui/x-date-pickers/hooks";
 import dayjs from "dayjs";
 import jalaliPlugin from "@zoomit/dayjs-jalali-plugin";
 import "dayjs/locale/fa";
-import { Dayjs } from "dayjs";
 
 dayjs.extend(jalaliPlugin);
 dayjs.locale("fa");

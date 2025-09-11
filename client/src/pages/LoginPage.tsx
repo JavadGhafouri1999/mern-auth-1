@@ -3,7 +3,7 @@ import Input from "@mui/joy/Input";
 import { useState } from "react";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import ThemeToggle from "../components/ThemeToggle";
 import { useForm } from "react-hook-form";
 import type { SubmitHandler } from "react-hook-form";
@@ -20,19 +20,17 @@ export default function SignupPage() {
 	const [showPass, setShowPass] = useState(false);
 	const navigate = useNavigate();
 	const { register, handleSubmit, watch } = useForm<InputTypes>();
-
+	const location = useLocation();
 	const watchEmail = watch("email", "");
 	const watchPassword = watch("password", "");
+	const redirectUrl = location.state?.redirectUrl || "/";
 
 	// Mutation
-	/**
-	 * Tha replace clear the browser stack
-	 * so you can't use back to go baack to loginpage again
-	 */
+
 	const { mutate: signIn, isPending } = useMutation({
 		mutationFn: login,
 		onSuccess: () => {
-			navigate("/", {
+			navigate(redirectUrl, {
 				replace: true,
 			});
 		},

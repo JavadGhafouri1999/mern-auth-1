@@ -57,3 +57,20 @@ export const getUser = async (): Promise<UserData> => {
 export const logout = async () => {
 	return API.get("/auth/logout");
 };
+
+export type SessionData = {
+	_id: string;
+	userId: string;
+	userAgent?: string;
+	createdAt: Date;
+	expiresAt: Date;
+	isCurrent?: boolean;
+};
+
+export const getSessions = async (): Promise<SessionData[]> => {
+	return API.get("/session");
+};
+
+export const deleteSession = async (id: string) => {
+	return API.delete(`/session/${id}`);
+};
