@@ -44,6 +44,7 @@ type UserData = {
 	sex: string;
 	birth: string;
 	role: string;
+	profileImage: string;
 	verified: boolean;
 	createdAt: string;
 	updatedAt: string;
@@ -51,4 +52,8 @@ type UserData = {
 
 export const getUser = async (): Promise<UserData> => {
 	return API.get("/user");
+};
+
+export const logout = async () => {
+	return API.get("/auth/logout");
 };

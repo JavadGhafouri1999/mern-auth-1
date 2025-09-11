@@ -8,12 +8,14 @@ export default function AuthLayout() {
 				display: "flex",
 				alignItems: "center",
 				justifyContent: "center",
-				height: "100vh",
+				minHeight: "100vh",
 				width: "100%",
 				backgroundColor: "background.body",
 				color: "text.primary",
 			}}>
-			<Outlet />
+			<Box sx={{ marginY: 8 }}>
+				<Outlet />
+			</Box>
 		</Box>
 	);
 }

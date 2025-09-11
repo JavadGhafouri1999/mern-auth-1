@@ -13,6 +13,7 @@ const ResetPasswordPage = lazy(() => import("../pages/ResetPasswordPage"));
 const HomePage = lazy(() => import("../pages/HomePage"));
 const VerifyEmailPage = lazy(() => import("../pages/VerifyEmailPage"));
 const ProfilePage = lazy(() => import("../pages/ProfilePage"));
+const SessionsPage = lazy(() => import("../pages/SessionsPage"));
 
 export default function AppRoutes() {
 	return (
@@ -24,12 +25,13 @@ export default function AppRoutes() {
 					<Route path="/signup" element={<SignupPage />}></Route>
 					<Route path="/password/forgot" element={<ForgetPasswordPage />}></Route>
 					<Route path="/password/reset" element={<ResetPasswordPage />}></Route>
+					<Route path="/email/verify/:code" element={<VerifyEmailPage />}></Route>
 				</Route>
 				{/* Layout - Main */}
 				<Route element={<MainLayout />}>
 					<Route path="/" element={<HomePage />}></Route>
-					<Route path="/email/verify/:code" element={<VerifyEmailPage />}></Route>
 					<Route path="/profile" element={<ProfilePage />}></Route>
+					<Route path="/sessions" element={<SessionsPage />}></Route>
 				</Route>
 			</Routes>
 		</Suspense>

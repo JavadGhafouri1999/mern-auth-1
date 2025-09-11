@@ -5,8 +5,9 @@ import { ThemeProvider, createTheme, useColorScheme as useMaterialColorScheme } 
 import { extendTheme as extendJoyTheme, useColorScheme, CssVarsProvider, THEME_ID } from "@mui/joy/styles";
 import InitColorSchemeScript from "@mui/joy/InitColorSchemeScript";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
+import queryClient from "./lib/queryClient";
 
 const theme = createTheme({ colorSchemes: { light: true, dark: true } });
 const joyTheme = extendJoyTheme({
@@ -30,7 +31,7 @@ const joyTheme = extendJoyTheme({
 			palette: {
 				background: {
 					body: "#000000",
-					surface: "rgba(255,255,255,0.07)",
+					surface: "rgba(255,255,255,0.08)",
 					tooltip: "#2B2E4A",
 				},
 				text: {
@@ -53,13 +54,6 @@ function SyncThemeMode() {
 	}, [mode, setMode]);
 	return null;
 }
-const queryClient = new QueryClient({
-	defaultOptions: {
-		queries: {
-			retry: false,
-		},
-	},
-});
 
 export default function App() {
 	return (
