@@ -82,8 +82,14 @@ export class AuthenticationService {
 	createAccount = async (userData: CreateAccountParams) => {
 		// Check if we have this email already or not
 		const existingUser = await this.userExist(userData.email);
-
 		appAssert(!existingUser, CONFLICT, "This email is already in use!", AppErrorCode.EmailAlreadyInUse);
+		const existingUsername = await this.userModel.findOne({ username: userData.username });
+		appAssert(
+			!existingUsername,
+			CONFLICT,
+			"This username is already in use",
+			AppErrorCode.EmailAlreadyInUse
+		);
 
 		// Now we know this email is new this creates a new user
 		const user = await UserModel.create({
@@ -242,7 +248,7 @@ export class AuthenticationService {
 	sendPasswordResetEmail = async (email: string) => {
 		// Check if the email is in database
 		const user = await this.getUserbyEmail(email);
-		appAssert(user, BAD_REQUEST, "user not found", AppErrorCode.UserNotFound);
+		appAssert(user, BAD_REQUEST, "User not found", AppErrorCode.UserNotFound);
 		const userId = user._id;
 
 		// Rate limiter it checks if there is more than one code with current userId in database

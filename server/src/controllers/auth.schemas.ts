@@ -10,7 +10,11 @@ export const passwordSchema = z
 export const usernameSchema = z
 	.string()
 	.min(4, "Username can't be shorter than 4 chars")
-	.max(16, "Username can't be longer than 16 chars");
+	.max(16, "Username can't be longer than 16 chars")
+	.regex(
+		/^[a-zA-Z][a-zA-Z0-9]*$/,
+		"Username must start with a letter and contain only letters and numbers"
+	);
 
 export const verificationSchema = z.string().min(1).max(24);
 

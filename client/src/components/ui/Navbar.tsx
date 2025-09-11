@@ -7,7 +7,6 @@ import Dropdown from "@mui/joy/Dropdown";
 import { Link, useNavigate } from "react-router";
 import PersonIcon from "@mui/icons-material/Person";
 import SettingsIcon from "@mui/icons-material/Settings";
-import MarkAsUnreadIcon from "@mui/icons-material/MarkAsUnread";
 import LogoutIcon from "@mui/icons-material/Logout";
 
 export default function Navbar() {
@@ -30,7 +29,9 @@ export default function Navbar() {
 				paddingX: { xs: 4, sm: 6, xl: 8 },
 			}}>
 			<Stack direction="row">
-				<Typography level="h3">LOGO</Typography>
+				<Link to="/">
+					<Typography level="h3">LOGO</Typography>
+				</Link>
 			</Stack>
 			<Stack direction="row">
 				<ThemeToggle />
@@ -53,15 +54,11 @@ export default function Navbar() {
 					<Menu size="sm" sx={{ paddingTop: 0 }}>
 						<MenuItem sx={{ paddingLeft: 8 }}>
 							<PersonIcon />
-							<Link to="/">پروفایل</Link>
+							<Link to="profile">پروفایل</Link>
 						</MenuItem>
-						<MenuItem>
+						<MenuItem disabled>
 							<SettingsIcon />
-							<Link to="/">تنظیمات</Link>
-						</MenuItem>
-						<MenuItem>
-							<MarkAsUnreadIcon />
-							<Link to="/">پستها</Link>
+							<Link to="profile">تنظیمات</Link>
 						</MenuItem>
 						<ListDivider />
 						<MenuItem onClick={handleLogout} color="danger">

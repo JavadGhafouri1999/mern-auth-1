@@ -3,10 +3,13 @@ import Input from "@mui/joy/Input";
 import { useState } from "react";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import ThemeToggle from "../components/ThemeToggle";
 import { useForm } from "react-hook-form";
 import type { SubmitHandler } from "react-hook-form";
+import { useMutation } from "@tanstack/react-query";
+import { login } from "../lib/api";
+import toast from "react-hot-toast";
 
 type InputTypes = {
 	email: string;
@@ -15,15 +18,37 @@ type InputTypes = {
 
 export default function SignupPage() {
 	const [showPass, setShowPass] = useState(false);
+	const navigate = useNavigate();
+	const { register, handleSubmit, watch } = useForm<InputTypes>();
 
-	const {
-		register,
-		handleSubmit,
-		watch,
-		formState: { errors },
-	} = useForm<InputTypes>();
+	const watchEmail = watch("email", "");
+	const watchPassword = watch("password", "");
 
-	const onSubmit: SubmitHandler<InputTypes> = (data) => console.log(data);
+	// Mutation
+	/**
+	 * Tha replace clear the browser stack
+	 * so you can't use back to go baack to loginpage again
+	 */
+	const { mutate: signIn, isPending } = useMutation({
+		mutationFn: login,
+		onSuccess: () => {
+			navigate("/", {
+				replace: true,
+			});
+		},
+		onError: (error) => {
+			const errorTranslations: Record<string, string> = {
+				"Invalid Credentials": "اطلاعات وارد شده صحیح نیست",
+				"User not found": "کاربر یافت نشد",
+			};
+
+			const englishMessage = error?.message || error?.message;
+			const errorMessage =
+				errorTranslations[englishMessage] || englishMessage || "مشکلی در ورود به حساب بوجود آمد.";
+			toast.error(errorMessage);
+		},
+	});
+	const onSubmit: SubmitHandler<InputTypes> = (data) => signIn(data);
 
 	return (
 		<Container
@@ -106,15 +131,25 @@ export default function SignupPage() {
 							)}
 						</FormControl>
 					</Stack>
+					<Link
+						to="/password/forgot"
+						className="text-blue-400 hover:text-blue-500 transition-all text-sm">
+						فراموشی رمزعبور
+					</Link>
 					<div className="flex items-center gap-2 text-sm">
 						<Typography level="body-sm" sx={{ color: "text.primary" }}>
-							حساب کاربری ندارید{" "}
+							حساب کاربری ندارید؟
 						</Typography>
-						<Link to="/signup" className="text-blue-600 hover:text-blue-500 transition-all">
+						<Link to="/signup" className="text-blue-400 hover:text-blue-500 transition-all">
 							ساخت حساب
 						</Link>
 					</div>
-					<Button type="submit" variant="soft" sx={{ width: "100%" }}>
+					<Button
+						loading={isPending}
+						disabled={!watchEmail || !watchPassword || watchEmail === "" || watchPassword === ""}
+						type="submit"
+						variant="soft"
+						sx={{ width: "100%" }}>
 						ورود به حساب
 					</Button>
 				</form>

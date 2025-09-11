@@ -8,8 +8,8 @@ export default function MainLayout() {
 			sx={{
 				display: "flex",
 				flexDirection: "column",
-				gap: 4,
 				height: "100vh",
+				gap: 4,
 				width: "100%",
 				backgroundColor: "background.body",
 				color: "text.primary",

@@ -6,8 +6,7 @@ import { validateToken } from "../utils/jwtToken";
 import type mongoose from "mongoose";
 
 const authenticate: RequestHandler = (req, res, next) => {
-	const accessToken =
-		(req.cookies.accessToken as string | undefined) || req.headers.authorization?.split(" ")[1];
+	const accessToken = req.cookies.accessToken as string | undefined;
 	appAssert(accessToken, UNAUTHORIZED, "Unauthorized", AppErrorCode.InvalidAccessToken);
 
 	const { payload, error } = validateToken(accessToken);

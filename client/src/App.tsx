@@ -6,6 +6,7 @@ import { extendTheme as extendJoyTheme, useColorScheme, CssVarsProvider, THEME_I
 import InitColorSchemeScript from "@mui/joy/InitColorSchemeScript";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "react-hot-toast";
 
 const theme = createTheme({ colorSchemes: { light: true, dark: true } });
 const joyTheme = extendJoyTheme({
@@ -13,17 +14,31 @@ const joyTheme = extendJoyTheme({
 		light: {
 			palette: {
 				background: {
-					body: "#FAF7F0", // page
-					surface: "#E4E0E1", // card
+					body: "#F0F5F9",
+					surface: "rgba(201, 214, 223,0.3)",
+					tooltip: "#D6E6F2",
 				},
+				text: {
+					primary: "#212121",
+					secondary: "#0D7377",
+					tertiary: "#769FCD",
+				},
+				divider: "rgba(33, 33, 33,0.2)",
 			},
 		},
 		dark: {
 			palette: {
 				background: {
-					body: "#1A1A1D",
-					surface: "#222831",
+					body: "#000000",
+					surface: "rgba(255,255,255,0.07)",
+					tooltip: "#2B2E4A",
 				},
+				text: {
+					primary: "#F0F5F9",
+					secondary: "#A4BE7B",
+					tertiary: "#5F8D4E",
+				},
+				divider: "rgba(255, 255, 255,0.1)",
 			},
 		},
 	},
@@ -38,7 +53,13 @@ function SyncThemeMode() {
 	}, [mode, setMode]);
 	return null;
 }
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+	defaultOptions: {
+		queries: {
+			retry: false,
+		},
+	},
+});
 
 export default function App() {
 	return (
@@ -49,10 +70,11 @@ export default function App() {
 					<InitColorSchemeScript />
 					<BrowserRouter>
 						<AppRoutes />
+						<Toaster position="top-center" toastOptions={{ duration: 3000 }} />
 					</BrowserRouter>
 				</CssVarsProvider>
 			</ThemeProvider>
-			<ReactQueryDevtools initialIsOpen={false} />
+			<ReactQueryDevtools position="bottom" initialIsOpen={false} />
 		</QueryClientProvider>
 	);
 }
