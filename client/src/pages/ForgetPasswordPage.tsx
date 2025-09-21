@@ -21,7 +21,7 @@ export default function ForgetPasswordPage() {
 	const errorTranslations: Record<string, string> = {
 		"User not found": "حساب کاربری وجود ندارد یا غیرفعال شده",
 		"Network Error or Server Unreachable": "خطا در اتصال به سرور",
-		"Too maany request please try again later": "تعداد درخواست ها غیرمجاز  ",
+		"Too many request please try again later": "تعداد درخواست ها غیرمجاز",
 		// Add more translations as needed
 	};
 

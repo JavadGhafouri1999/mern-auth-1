@@ -5,7 +5,6 @@ import cookieParser from "cookie-parser";
 import connectDB from "./config/db";
 import cors from "cors";
 import errorHandler from "./middleware/errorHandler";
-import chalk from "chalk";
 import authRoutes from "./routes/auth.route";
 import userRoute from "./routes/user.route";
 import authenticate from "./middleware/authenticate";
@@ -35,15 +34,17 @@ app.use("/session", authenticate, sessionRoute);
 app.use(errorHandler);
 
 /* ---------------------------------- Build --------------------------------- */
+
 if (process.env.NODE_ENV === "production") {
-	// Create __dirname equivalent for ES modules
 	const __filename = fileURLToPath(import.meta.url);
 	const __dirname = path.dirname(__filename);
+	const rootDir = path.resolve(__dirname, "../..");
 
-	// Correct path: go up one more level to reach the client/dist directory
-	app.use(express.static(path.join(__dirname, "../../client/dist")));
-	app.get(/^(?!\/api).*/, (req, res) => {
-		res.sendFile(path.join(__dirname, "../../client/dist/index.html"));
+	app.use(express.static(path.join(rootDir, "client/dist")));
+
+	// ✅ Express 5 safe catch-all
+	app.get(/.*/, (_, res) => {
+		res.sendFile(path.join(rootDir, "client/dist/index.html"));
 	});
 }
 

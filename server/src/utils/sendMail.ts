@@ -1,4 +1,4 @@
-import { EMAIL_SENDER, NODE_ENV } from "../constants/env";
+import { NODE_ENV } from "../constants/env";
 import resend from "./resend";
 
 type Params = {

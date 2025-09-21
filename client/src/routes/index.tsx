@@ -1,8 +1,6 @@
 import { lazy, Suspense } from "react";
-import LoadingPage from "../pages/LoadingPage";
 import { Route, Routes } from "react-router";
-import AuthLayout from "../pages/layouts/AuthLayout";
-import MainLayout from "../pages/layouts/MainLayout";
+import LoadingPage from "../pages/LoadingPage";
 
 // Auth Routes
 const LoginPage = lazy(() => import("../pages/LoginPage"));
@@ -14,6 +12,10 @@ const HomePage = lazy(() => import("../pages/HomePage"));
 const ProfilePage = lazy(() => import("../pages/ProfilePage"));
 const SessionsPage = lazy(() => import("../pages/SessionsPage"));
 const VerifyEmailPage = lazy(() => import("../pages/VerifyEmailPage"));
+
+// Layouts
+const AuthLayout = lazy(() => import("../pages/layouts/AuthLayout"));
+const MainLayout = lazy(() => import("../pages/layouts/MainLayout"));
 
 export default function AppRoutes() {
 	return (
